@@ -4,10 +4,14 @@ const fs = require('fs');
 
 const dbPath = path.join(__dirname, 'data', 'database.sqlite');
 
+// Создаём папку data, если её нет
 const dataDir = path.join(__dirname, 'data');
 if (!fs.existsSync(dataDir)) {
     fs.mkdirSync(dataDir, { recursive: true });
 }
+
+// Проверяем, существует ли файл базы данных
+const dbExists = fs.existsSync(dbPath);
 
 const db = new sqlite3.Database(dbPath, (err) => {
     if (err) {
@@ -16,22 +20,12 @@ const db = new sqlite3.Database(dbPath, (err) => {
     }
     console.log('✅ Подключено к SQLite');
 
-    // Проверяем, есть ли данные в таблице
-    db.get('SELECT COUNT(*) as count FROM table_data', (err, row) => {
-        if (err) {
-            // Если таблицы нет — создаём
-            console.log('🔄 Таблица не найдена, создаём...');
-            runInitSql();
-            return;
-        }
-
-        if (row.count === 0) {
-            console.log('🔄 Таблица пуста, заполняем...');
-            runInitSql();
-        } else {
-            console.log('✅ Данные уже есть, пропускаем инициализацию');
-        }
-    });
+    if (!dbExists) {
+        console.log('🔄 Файл базы не найден, создаём...');
+        runInitSql();
+    } else {
+        console.log('✅ База данных уже существует, пропускаем инициализацию');
+    }
 });
 
 function runInitSql() {
