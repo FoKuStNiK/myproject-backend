@@ -17,3 +17,6 @@ npm install
 
 # 4. Запустить сервер
 npm start
+git add .
+git commit "..."
+git push

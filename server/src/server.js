@@ -10,6 +10,8 @@ app.use(express.json());
 
 app.use('/', routes);
 
-app.listen(PORT, () => {
-    console.log(`✅ Сервер на http://localhost:${PORT}`);
-});
+const startServer = async () => {
+    await db.init(); // если у тебя есть такой метод
+    app.listen(PORT, () => console.log(`✅ Сервер на http://localhost:${PORT}`));
+};
+startServer();
