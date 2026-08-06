@@ -1,0 +1,1 @@
+ALTER TABLE table_data RENAME COLUMN new_field TO custom_field;
