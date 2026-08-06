@@ -1,22 +1,19 @@
-# MyProject Backend
+## ⚡ Быстрый старт
 
-Серверная часть проекта на Node.js + Express + SQLite.
-
-## 🚀 Запуск
+### 1️⃣ Бэкенд (в первом терминале)
 
 ```bash
-**Важно:** Проект состоит из двух частей — фронтенда и бэкенда. Обе должны быть запущены одновременно в разных терминалах.
-# 1. Клонировать репозиторий
 git clone https://github.com/FoKuStNiK/myproject-backend.git
-
-# 2. Перейти в папку
 cd myproject-backend
-
-# 3. Установить зависимости
 npm install
-
-# 4. Запустить сервер
 npm start
-git add .
-git commit "..."
-git push
+
+2️⃣ Фронтенд (во втором терминале)
+
+git clone https://github.com/FoKuStNiK/myproject-frontend.git
+cd myproject-frontend
+npm install
+cd src/api-js
+npm install   # ← зависимости для OpenAPI-клиента
+cd ../..
+npm start
