@@ -4,6 +4,7 @@ CREATE TABLE IF NOT EXISTS table_data (
     row_number INTEGER,
     col_number INTEGER,
     cell_value TEXT
+    UNIQUE (row_number, col_number)
 );
 
 -- Заполняем пустыми данными (6×4)

@@ -12,8 +12,6 @@ const getTableData = (req, res) => {
                 return res.status(500).json({ error: 'Ошибка сервера' });
             }
 
-            console.log('Данные из БД (первые 5):', rows.slice(0, 5)); // ← добавь
-
             // Превращаем плоский список (24 записи) в матрицу 6×4
             const table = [];
             for (let i = 0; i < 6; i++) {
@@ -21,7 +19,6 @@ const getTableData = (req, res) => {
                 table.push(row);
             }
             res.json(table);
-            console.log('Данные с координатами:', rows.slice(0, 5));
         }
     );
 };
@@ -29,7 +26,16 @@ const getTableData = (req, res) => {
 // ========== PATCH /api/table-data/cell ==========
 const updateCell = (req, res) => {
     console.log('Получены данные:', req.body);
-    const { row, col, value } = req.body;
+    let { row, col, value } = req.body;
+
+    // Преобразуем в числа
+    row = Number(row);
+    col = Number(col);
+
+    // Проверка, что это числа
+    if (isNaN(row) || isNaN(col)) {
+        return res.status(400).json({ error: 'row и col должны быть числами' });
+    }
 
     // Проверка обязательных полей
     if (row === undefined || col === undefined || value === undefined) {
@@ -51,7 +57,6 @@ const updateCell = (req, res) => {
                 return res.status(500).json({ error: 'Ошибка сервера' });
             }
 
-            // Проверяем, была ли обновлена хотя бы одна строка
             if (this.changes === 0) {
                 return res.status(404).json({ error: 'Ячейка не найдена' });
             }
