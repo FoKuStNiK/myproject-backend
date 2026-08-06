@@ -3,7 +3,7 @@ CREATE TABLE IF NOT EXISTS table_data (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     row_number INTEGER,
     col_number INTEGER,
-    cell_value TEXT
+    cell_value TEXT,
     UNIQUE (row_number, col_number)
 );
 
