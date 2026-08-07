@@ -1,4 +1,4 @@
-const sqlite3 = require('sqlite3').verbose();
+const Database = require('better-sqlite3');
 const path = require('path');
 const fs = require('fs');
 
@@ -10,27 +10,22 @@ if (!fs.existsSync(dataDir)) {
     fs.mkdirSync(dataDir, { recursive: true });
 }
 
-const db = new sqlite3.Database(dbPath, (err) => {
-    if (err) {
-        console.error('❌ Ошибка подключения к SQLite:', err.message);
-        process.exit(1);
-    }
-    console.log('✅ Подключено к SQLite');
+// Подключаемся к SQLite через better-sqlite3
+const db = new Database(dbPath);
 
-    // Создаём таблицу для истории миграций
-    db.run(`CREATE TABLE IF NOT EXISTS migrations (
+console.log('✅ Подключено к SQLite (better-sqlite3)');
+
+// Создаём таблицу для истории миграций (синхронно)
+db.exec(`
+    CREATE TABLE IF NOT EXISTS migrations (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT UNIQUE,
         executed_at TEXT DEFAULT CURRENT_TIMESTAMP
-    )`, (err) => {
-        if (err) {
-            console.error('❌ Ошибка создания таблицы migrations:', err.message);
-            return;
-        }
-        // Запускаем миграции
-        runMigrations(db);
-    });
-});
+    )
+`);
+
+// Запускаем миграции
+runMigrations(db);
 
 function runMigrations(db) {
     const migrationsDir = path.join(__dirname, 'migrations');
@@ -48,44 +43,28 @@ function runMigrations(db) {
         return;
     }
 
-    let pending = files.length;
-    let completed = 0;
-
-    files.forEach((file) => {
+    for (const file of files) {
         const name = path.basename(file, '.sql');
 
-        db.get('SELECT * FROM migrations WHERE name = ?', [name], (err, row) => {
-            if (err) {
-                console.error('❌ Ошибка проверки миграции:', err.message);
-                pending--;
-                return;
-            }
+        // Проверяем, выполнялась ли миграция
+        const row = db.prepare('SELECT * FROM migrations WHERE name = ?').get(name);
 
-            if (row) {
-                console.log(`⏭️ Миграция ${file} уже выполнена, пропускаем`);
-                pending--;
-                return;
-            }
+        if (row) {
+            console.log(`⏭️ Миграция ${file} уже выполнена, пропускаем`);
+            continue;
+        }
 
-            console.log(`🔄 Выполняется миграция: ${file}`);
-            const sql = fs.readFileSync(path.join(migrationsDir, file), 'utf8');
+        console.log(`🔄 Выполняется миграция: ${file}`);
+        const sql = fs.readFileSync(path.join(migrationsDir, file), 'utf8');
 
-            db.exec(sql, (err) => {
-                if (err) {
-                    console.error(`❌ Ошибка миграции ${file}:`, err.message);
-                } else {
-                    db.run('INSERT INTO migrations (name) VALUES (?)', [name], (err) => {
-                        if (err) {
-                            console.error(`❌ Ошибка записи истории: ${file}`, err.message);
-                        } else {
-                            console.log(`✅ Миграция ${file} выполнена`);
-                        }
-                    });
-                }
-                pending--;
-            });
-        });
-    });
+        try {
+            db.exec(sql);
+            db.prepare('INSERT INTO migrations (name) VALUES (?)').run(name);
+            console.log(`✅ Миграция ${file} выполнена`);
+        } catch (err) {
+            console.error(`❌ Ошибка миграции ${file}:`, err.message);
+        }
+    }
 }
 
 module.exports = db;

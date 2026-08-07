@@ -1,94 +1,66 @@
-console.log('__dirname:', __dirname);
-console.log('Проверяем путь:', require.resolve('../db'));
-const db = require('../db');
+const db = require('../db'); // better-sqlite3
 
 // ========== GET /api/table-data ==========
 const getTableData = (req, res) => {
-    db.all(
-        'SELECT row_number, col_number, cell_value FROM table_data ORDER BY row_number, col_number',
-        (err, rows) => {
-            if (err) {
-                console.error('Ошибка чтения таблицы:', err);
-                return res.status(500).json({ error: 'Ошибка сервера' });
-            }
-
-            // Превращаем плоский список (24 записи) в матрицу 6×4
-            const table = [];
-            for (let i = 0; i < 6; i++) {
-                const row = rows.slice(i * 4, i * 4 + 4).map(r => r.cell_value);
-                table.push(row);
-            }
-            res.json(table);
+    try {
+        const rows = db.prepare('SELECT row_number, col_number, cell_value FROM table_data ORDER BY row_number, col_number').all();
+        
+        const table = [];
+        for (let i = 0; i < 6; i++) {
+            const row = rows.slice(i * 4, i * 4 + 4).map(r => r.cell_value);
+            table.push(row);
         }
-    );
+        res.json(table);
+    } catch (err) {
+        console.error('Ошибка чтения таблицы:', err);
+        res.status(500).json({ error: 'Ошибка сервера' });
+    }
 };
 
 // ========== PATCH /api/table-data/cell ==========
 const updateCell = (req, res) => {
-    console.log('Получены данные:', req.body);
-    let { row, col, value } = req.body;
+    const { row, col, value } = req.body;
 
-    // Преобразуем в числа
-    row = Number(row);
-    col = Number(col);
-
-    // Проверка, что это числа
-    if (isNaN(row) || isNaN(col)) {
-        return res.status(400).json({ error: 'row и col должны быть числами' });
-    }
-
-    // Проверка обязательных полей
     if (row === undefined || col === undefined || value === undefined) {
         return res.status(400).json({ error: 'Не все данные переданы' });
     }
 
-    // Проверка, что индексы в пределах таблицы (0–5 и 0–3)
     if (row < 0 || row > 5 || col < 0 || col > 3) {
         return res.status(400).json({ error: 'Индекс ячейки вне диапазона' });
     }
 
-    // Обновляем только одну ячейку
-    db.run(
-        'UPDATE table_data SET cell_value = ? WHERE row_number = ? AND col_number = ?',
-        [value, row, col],
-        function (err) {
-            if (err) {
-                console.error('Ошибка обновления ячейки:', err);
-                return res.status(500).json({ error: 'Ошибка сервера' });
-            }
-
-            if (this.changes === 0) {
-                return res.status(404).json({ error: 'Ячейка не найдена' });
-            }
-
-            res.json({ success: true, message: 'Ячейка сохранена' });
+    try {
+        const result = db.prepare('UPDATE table_data SET cell_value = ? WHERE row_number = ? AND col_number = ?').run(value, row, col);
+        
+        if (result.changes === 0) {
+            return res.status(404).json({ error: 'Ячейка не найдена' });
         }
-    );
+
+        res.json({ success: true, message: 'Ячейка сохранена' });
+    } catch (err) {
+        console.error('Ошибка обновления ячейки:', err);
+        res.status(500).json({ error: 'Ошибка сервера' });
+    }
 };
 
 // ========== DELETE /api/table-data ==========
 const clearTable = (req, res) => {
-    // Очищаем все ячейки (заменяем на пустые строки)
-    db.run(
-        'UPDATE table_data SET cell_value = ""',
-        function (err) {
-            if (err) {
-                console.error('Ошибка очистки таблицы:', err);
-                return res.status(500).json({ error: 'Ошибка сервера' });
-            }
+    try {
+        db.prepare('UPDATE table_data SET cell_value = ""').run();
 
-            // После очистки возвращаем пустую таблицу 6×4
-            const emptyTable = [
-                ['', '', '', ''],
-                ['', '', '', ''],
-                ['', '', '', ''],
-                ['', '', '', ''],
-                ['', '', '', ''],
-                ['', '', '', '']
-            ];
-            res.json(emptyTable);
-        }
-    );
+        const emptyTable = [
+            ['', '', '', ''],
+            ['', '', '', ''],
+            ['', '', '', ''],
+            ['', '', '', ''],
+            ['', '', '', ''],
+            ['', '', '', '']
+        ];
+        res.json(emptyTable);
+    } catch (err) {
+        console.error('Ошибка очистки таблицы:', err);
+        res.status(500).json({ error: 'Ошибка сервера' });
+    }
 };
 
 module.exports = { getTableData, updateCell, clearTable };
