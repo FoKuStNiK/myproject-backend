@@ -12,10 +12,9 @@ if (!fs.existsSync(dataDir)) {
 
 // Подключаемся к SQLite через better-sqlite3
 const db = new Database(dbPath);
-
 console.log('✅ Подключено к SQLite (better-sqlite3)');
 
-// Создаём таблицу для истории миграций (синхронно)
+// Создаём таблицу для истории миграций
 db.exec(`
     CREATE TABLE IF NOT EXISTS migrations (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -24,9 +23,7 @@ db.exec(`
     )
 `);
 
-// Запускаем миграции
-runMigrations(db);
-
+// Функция миграций
 function runMigrations(db) {
     const migrationsDir = path.join(__dirname, 'migrations');
     if (!fs.existsSync(migrationsDir)) {
@@ -67,4 +64,12 @@ function runMigrations(db) {
     }
 }
 
+// Запускаем миграции
+try {
+    runMigrations(db);
+} catch (err) {
+    console.error('❌ Ошибка при запуске миграций:', err.message);
+}
+
+// ✅ ВАЖНО: Экспортируем БД
 module.exports = db;
