@@ -10,7 +10,7 @@ services:
     ports:
       - "5000:5000"
     volumes:
-      - ./server/data:/app/server/data
+      - ./server/src/data:/app/server/src/data   # 👈 ИСПРАВЛЕНО!
     environment:
       - NODE_ENV=production
     restart: unless-stopped
@@ -34,7 +34,6 @@ services:
     networks:
       - my-network
 
-# ========== ОБЩАЯ СЕТЬ ==========
 networks:
   my-network:
     driver: bridge
