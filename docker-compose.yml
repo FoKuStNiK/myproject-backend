@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  # ========== БЭКЕНД ==========
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: my-backend
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./server/data:/app/server/data
+    environment:
+      - NODE_ENV=production
+    restart: unless-stopped
+    networks:
+      - my-network
+
+  # ========== ФРОНТЕНД ==========
+  frontend:
+    build:
+      context: ../myproject-frontend-temp
+      dockerfile: Dockerfile
+    container_name: my-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - REACT_APP_API_URL=http://localhost:5000
+    restart: unless-stopped
+    depends_on:
+      - backend
+    networks:
+      - my-network
+
+# ========== ОБЩАЯ СЕТЬ ==========
+networks:
+  my-network:
+    driver: bridge
