@@ -1,15 +1,19 @@
 const db = require('../db'); // better-sqlite3
+const { broadcast } = require('../websocket/tableSocket');
 
 // ========== GET /api/table-data ==========
 const getTableData = (req, res) => {
     try {
-        const rows = db.prepare('SELECT row_number, col_number, cell_value FROM table_data ORDER BY row_number, col_number').all();
-        
+        const rows = db.prepare(
+            'SELECT row_number, col_number, cell_value FROM table_data ORDER BY row_number, col_number'
+        ).all();
+
         const table = [];
         for (let i = 0; i < 6; i++) {
             const row = rows.slice(i * 4, i * 4 + 4).map(r => r.cell_value);
             table.push(row);
         }
+
         res.json(table);
     } catch (err) {
         console.error('Ошибка чтения таблицы:', err);
@@ -21,20 +25,27 @@ const getTableData = (req, res) => {
 const updateCell = (req, res) => {
     const { row, col, value } = req.body;
 
-    if (row === undefined || col === undefined || value === undefined) {
+    if (row === undefined || col === undefined || value === undefined)
         return res.status(400).json({ error: 'Не все данные переданы' });
-    }
 
-    if (row < 0 || row > 5 || col < 0 || col > 3) {
+    if (row < 0 || row > 5 || col < 0 || col > 3)
         return res.status(400).json({ error: 'Индекс ячейки вне диапазона' });
-    }
 
     try {
-        const result = db.prepare('UPDATE table_data SET cell_value = ? WHERE row_number = ? AND col_number = ?').run(value, row, col);
-        
-        if (result.changes === 0) {
+        const result = db.prepare(
+            'UPDATE table_data SET cell_value = ? WHERE row_number = ? AND col_number = ?'
+        ).run(value, row, col);
+
+        if (result.changes === 0)
             return res.status(404).json({ error: 'Ячейка не найдена' });
-        }
+
+        // Рассылаем изменение всем WebSocket-клиентам
+        broadcast({
+            type: 'cell:updated',
+            row,
+            col,
+            value
+        });
 
         res.json({ success: true, message: 'Ячейка сохранена' });
     } catch (err) {
@@ -46,7 +57,7 @@ const updateCell = (req, res) => {
 // ========== DELETE /api/table-data ==========
 const clearTable = (req, res) => {
     try {
-        db.prepare('UPDATE table_data SET cell_value = ""').run();
+        db.prepare('UPDATE table_data SET cell_value = ?').run('');
 
         const emptyTable = [
             ['', '', '', ''],
@@ -56,6 +67,13 @@ const clearTable = (req, res) => {
             ['', '', '', ''],
             ['', '', '', '']
         ];
+
+        // Рассылаем очистку всем WebSocket-клиентам
+        broadcast({
+            type: 'table:cleared',
+            data: emptyTable
+        });
+
         res.json(emptyTable);
     } catch (err) {
         console.error('Ошибка очистки таблицы:', err);
