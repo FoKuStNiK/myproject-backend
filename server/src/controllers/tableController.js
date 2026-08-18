@@ -13,7 +13,6 @@ const getTableData = (req, res) => {
             const row = rows.slice(i * 4, i * 4 + 4).map(r => r.cell_value);
             table.push(row);
         }
-
         res.json(table);
     } catch (err) {
         console.error('Ошибка чтения таблицы:', err);
