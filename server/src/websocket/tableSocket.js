@@ -38,7 +38,12 @@ const setupTableSocket = (wss) => {
                             col: message.col,
                             value: message.value
                         });
-                        send(socket, { type: 'cell:saved', ...result });
+                        send(socket, {
+                            type: 'cell:saved',
+                            row: message.row,
+                            col: message.col,
+                            ...result
+                        });
                         break;
                     }
                     case 'table:clear': {

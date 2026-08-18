@@ -35,17 +35,13 @@ const updateCell = (row, col, value) => {
     return { success: true, message: 'Ячейка сохранена' };
 };
 
-const clearTable = () => {
-    db.prepare('UPDATE table_data SET cell_value = ""').run();
+function clearTable() {
+    db.prepare(`
+        UPDATE table_data
+        SET cell_value = ''
+    `).run();
 
-    return [
-        ['', '', '', ''],
-        ['', '', '', ''],
-        ['', '', '', ''],
-        ['', '', '', ''],
-        ['', '', '', ''],
-        ['', '', '', '']
-    ];
-};
+    return getTableData();
+}
 
 module.exports = { getTableData, updateCell, clearTable };
