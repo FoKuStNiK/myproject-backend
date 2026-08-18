@@ -13,6 +13,15 @@ const broadcast = (wss, message) => {
 
 const setupTableSocket = (wss) => {
     wss.on('connection', socket => {
+        console.log('🔌 WebSocket клиент подключён');
+
+        socket.isAlive = true;
+
+        socket.on('pong', () => {
+            console.log('🏓 Клиент ответил pong');
+            socket.isAlive = true;
+        });
+
         socket.on('message', rawMessage => {
             let message;
 
@@ -30,14 +39,17 @@ const setupTableSocket = (wss) => {
                         send(socket, { type: 'table:data', data });
                         break;
                     }
+
                     case 'cell:update': {
                         const result = updateCell(message.row, message.col, message.value);
+
                         broadcast(wss, {
                             type: 'cell:updated',
                             row: message.row,
                             col: message.col,
                             value: message.value
                         });
+
                         send(socket, {
                             type: 'cell:saved',
                             row: message.row,
@@ -46,12 +58,14 @@ const setupTableSocket = (wss) => {
                         });
                         break;
                     }
+
                     case 'table:clear': {
                         const data = clearTable();
                         broadcast(wss, { type: 'table:cleared', data });
                         send(socket, { type: 'table:clear:result', success: true });
                         break;
                     }
+
                     default:
                         send(socket, { type: 'error', message: 'Неизвестный тип сообщения' });
                 }
@@ -63,6 +77,29 @@ const setupTableSocket = (wss) => {
                 });
             }
         });
+
+        socket.on('close', () => {
+            console.log('🔌 WebSocket клиент отключён');
+        });
+    });
+
+    // Каждые 5 секунд проверяем клиентов
+    const heartbeatInterval = setInterval(() => {
+        wss.clients.forEach(socket => {
+            if (socket.isAlive === false) {
+                console.log('❌ WebSocket клиент не отвечает');
+                socket.terminate();
+                return;
+            }
+
+            socket.isAlive = false;
+            console.log('🏓 Отправляем ping клиенту');
+            socket.ping();
+        });
+    }, 5000);
+
+    wss.on('close', () => {
+        clearInterval(heartbeatInterval);
     });
 };
 
