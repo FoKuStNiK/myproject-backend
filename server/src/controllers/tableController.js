@@ -1,0 +1,37 @@
+const { getTableData, updateCell, clearTable } = require('../services/tableService');
+const { broadcast } = require('../websocket/tableSocket');
+
+const getTable = (req, res) => {
+    try {
+        res.json(getTableData());
+    } catch (error) {
+        console.error('Ошибка чтения таблицы:', error);
+        res.status(500).json({ error: 'Ошибка сервера' });
+    }
+};
+
+const updateTableCell = (req, res) => {
+    const { row, col, value } = req.body;
+
+    try {
+        const result = updateCell(row, col, value);
+        broadcast({ type: 'cell:updated', row, col, value });
+        res.json(result);
+    } catch (error) {
+        console.error('Ошибка обновления ячейки:', error);
+        res.status(error.code || 500).json({ error: error.code ? error.message : 'Ошибка сервера' });
+    }
+};
+
+const clearTableData = (req, res) => {
+    try {
+        const data = clearTable();
+        broadcast({ type: 'table:cleared', data });
+        res.json(data);
+    } catch (error) {
+        console.error('Ошибка очистки таблицы:', error);
+        res.status(500).json({ error: 'Ошибка сервера' });
+    }
+};
+
+module.exports = { getTable, updateTableCell, clearTableData };
