@@ -17,11 +17,6 @@ const setupTableSocket = (wss) => {
 
         socket.isAlive = true;
 
-        socket.on('pong', () => {
-            console.log('🏓 Клиент ответил pong');
-            socket.isAlive = true;
-        });
-
         socket.on('message', rawMessage => {
             let message;
 
@@ -34,6 +29,13 @@ const setupTableSocket = (wss) => {
 
             try {
                 switch (message.type) {
+                    // Ответ клиента на прикладной ping
+                    case 'pong': {
+                        socket.isAlive = true;
+                        console.log('🏓 Клиент ответил pong');
+                        break;
+                    }
+
                     case 'table:get': {
                         const data = getTableData();
                         send(socket, { type: 'table:data', data });
@@ -83,7 +85,8 @@ const setupTableSocket = (wss) => {
         });
     });
 
-    // Каждые 5 секунд проверяем клиентов
+    // Каждые 5 секунд отправляем клиентам прикладной ping.
+    // Клиент должен ответить сообщением { type: 'pong' }.
     const heartbeatInterval = setInterval(() => {
         wss.clients.forEach(socket => {
             if (socket.isAlive === false) {
@@ -93,8 +96,14 @@ const setupTableSocket = (wss) => {
             }
 
             socket.isAlive = false;
+
+            const timestamp = Date.now();
             console.log('🏓 Отправляем ping клиенту');
-            socket.ping();
+
+            send(socket, {
+                type: 'ping',
+                timestamp
+            });
         });
     }, 5000);
 
