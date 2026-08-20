@@ -103,15 +103,13 @@ const setupTableSocket = (wss) => {
 
             socket.isAlive = false;
 
-            const timestamp = Date.now();
             console.log('🏓 Отправляем ping клиенту');
 
             send(socket, {
-                type: 'ping',
-                timestamp
+                type: 'ping'
             });
         });
-    }, 5000);
+    },30000);
 
     wss.on('close', () => {
         clearInterval(heartbeatInterval);
