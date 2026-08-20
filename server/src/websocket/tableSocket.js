@@ -1,4 +1,5 @@
 const { WebSocket } = require('ws');
+const { clearTable } = require('../services/tableService');
 
 let wssInstance = null;
 
@@ -32,13 +33,39 @@ const setupTableSocket = (wss) => {
                 return;
             }
 
-            if (message.type === 'PONG') {
-                socket.isAlive = true;
-                console.log('🏓 Клиент ответил PONG');
-                return;
-            }
+            try {
+                switch (message.type) {
+                    case 'PONG': {
+                        socket.isAlive = true;
+                        console.log('🏓 Клиент ответил PONG');
+                        break;
+                    }
 
-            send(socket, { type: 'ERROR', message: 'Неизвестный тип сообщения' });
+                    case 'TABLE_CLEAR': {
+                        const data = clearTable();
+
+                        broadcast({
+                            type: 'TABLE_CLEARED',
+                            data
+                        });
+
+                        send(socket, {
+                            type: 'TABLE_CLEAR_RESULT',
+                            success: true
+                        });
+                        break;
+                    }
+
+                    default:
+                        send(socket, { type: 'ERROR', message: 'Неизвестный тип сообщения' });
+                }
+            } catch (error) {
+                console.error('Ошибка WebSocket таблицы:', error);
+                send(socket, {
+                    type: 'ERROR',
+                    message: error.code ? error.message : 'Ошибка сервера'
+                });
+            }
         });
 
         socket.on('close', () => {
@@ -46,8 +73,6 @@ const setupTableSocket = (wss) => {
         });
     });
 
-    // WebSocket используется как подписка на изменения таблицы.
-    // PING/PONG нужен только для проверки живого соединения.
     const heartbeatInterval = setInterval(() => {
         wss.clients.forEach(socket => {
             if (socket.isAlive === false) {
