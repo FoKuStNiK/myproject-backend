@@ -1,17 +1,23 @@
 const { WebSocket } = require('ws');
 const { getTableData, updateCell, clearTable } = require('../services/tableService');
 
+let wssInstance = null;
+
 const send = (socket, message) => {
     if (socket.readyState === WebSocket.OPEN) {
         socket.send(JSON.stringify(message));
     }
 };
 
-const broadcast = (wss, message) => {
-    wss.clients.forEach(client => send(client, message));
+const broadcast = (message) => {
+    if (!wssInstance) return;
+
+    wssInstance.clients.forEach(client => send(client, message));
 };
 
 const setupTableSocket = (wss) => {
+    wssInstance = wss;
+
     wss.on('connection', socket => {
         console.log('🔌 WebSocket клиент подключён');
 
@@ -45,7 +51,7 @@ const setupTableSocket = (wss) => {
                     case 'cell:update': {
                         const result = updateCell(message.row, message.col, message.value);
 
-                        broadcast(wss, {
+                        broadcast({
                             type: 'cell:updated',
                             row: message.row,
                             col: message.col,
@@ -63,7 +69,7 @@ const setupTableSocket = (wss) => {
 
                     case 'table:clear': {
                         const data = clearTable();
-                        broadcast(wss, { type: 'table:cleared', data });
+                        broadcast({ type: 'table:cleared', data });
                         send(socket, { type: 'table:clear:result', success: true });
                         break;
                     }
@@ -112,4 +118,4 @@ const setupTableSocket = (wss) => {
     });
 };
 
-module.exports = setupTableSocket;
+module.exports = { setupTableSocket, broadcast };
