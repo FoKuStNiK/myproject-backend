@@ -1,4 +1,4 @@
-const { getTableData, updateCell, clearTable } = require('../services/tableService');
+const { getTableData, updateCell } = require('../services/tableService');
 const { broadcast } = require('../websocket/tableSocket');
 
 const getTable = (req, res) => {
@@ -32,15 +32,4 @@ const updateTableCell = (req, res) => {
     }
 };
 
-const clearTableData = (req, res) => {
-    try {
-        const data = clearTable();
-        broadcast({ type: 'TABLE_CLEARED', data });
-        res.json(data);
-    } catch (error) {
-        console.error('Ошибка очистки таблицы:', error);
-        res.status(500).json({ error: 'Ошибка сервера' });
-    }
-};
-
-module.exports = { getTable, updateTableCell, clearTableData };
+module.exports = { getTable, updateTableCell };
