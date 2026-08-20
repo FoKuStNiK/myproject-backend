@@ -4,7 +4,7 @@ const cors = require('cors');
 const { WebSocketServer } = require('ws');
 const routes = require('./routes');
 const db = require('./db'); // ← импортируем db, а не initDb
-const setupTableSocket = require('./websocket/tableSocket');
+const { setupTableSocket } = require('./websocket/tableSocket');
 const PORT = 5000;
 
 const app = express();
