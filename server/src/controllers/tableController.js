@@ -15,7 +15,7 @@ const updateTableCell = (req, res) => {
 
     try {
         const result = updateCell(row, col, value);
-        broadcast({ type: 'cell:updated', row, col, value });
+        broadcast({ type: 'CELL_UPDATED', row, col, value });
         res.json(result);
     } catch (error) {
         console.error('Ошибка обновления ячейки:', error);
@@ -26,7 +26,7 @@ const updateTableCell = (req, res) => {
 const clearTableData = (req, res) => {
     try {
         const data = clearTable();
-        broadcast({ type: 'table:cleared', data });
+        broadcast({ type: 'TABLE_CLEARED', data });
         res.json(data);
     } catch (error) {
         console.error('Ошибка очистки таблицы:', error);
