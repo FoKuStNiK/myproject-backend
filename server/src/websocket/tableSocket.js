@@ -1,5 +1,5 @@
 const { WebSocket } = require('ws');
-const { clearTable } = require('../services/tableService');
+const { updateCell, clearTable } = require('../services/tableService');
 
 let wssInstance = null;
 
@@ -38,6 +38,29 @@ const setupTableSocket = (wss) => {
                     case 'PONG': {
                         socket.isAlive = true;
                         console.log('🏓 Клиент ответил PONG');
+                        break;
+                    }
+
+                    case 'CELL_UPDATE': {
+                        const result = updateCell(
+                            message.row,
+                            message.col,
+                            message.value
+                        );
+
+                        broadcast({
+                            type: 'CELL_UPDATED',
+                            row: message.row,
+                            col: message.col,
+                            value: message.value
+                        });
+
+                        send(socket, {
+                            type: 'CELL_SAVED',
+                            row: message.row,
+                            col: message.col,
+                            ...result
+                        });
                         break;
                     }
 
