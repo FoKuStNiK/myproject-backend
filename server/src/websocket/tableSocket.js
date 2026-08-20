@@ -1,5 +1,4 @@
 const { WebSocket } = require('ws');
-const { getTableData, updateCell, clearTable } = require('../services/tableService');
 
 let wssInstance = null;
 
@@ -29,61 +28,17 @@ const setupTableSocket = (wss) => {
             try {
                 message = JSON.parse(rawMessage.toString());
             } catch (error) {
-                send(socket, { type: 'error', message: 'Некорректный формат сообщения' });
+                send(socket, { type: 'ERROR', message: 'Некорректный формат сообщения' });
                 return;
             }
 
-            try {
-                switch (message.type) {
-                    // Ответ клиента на прикладной ping
-                    case 'pong': {
-                        socket.isAlive = true;
-                        console.log('🏓 Клиент ответил pong');
-                        break;
-                    }
-
-                    case 'table:get': {
-                        const data = getTableData();
-                        send(socket, { type: 'table:data', data });
-                        break;
-                    }
-
-                    case 'cell:update': {
-                        const result = updateCell(message.row, message.col, message.value);
-
-                        broadcast({
-                            type: 'cell:updated',
-                            row: message.row,
-                            col: message.col,
-                            value: message.value
-                        });
-
-                        send(socket, {
-                            type: 'cell:saved',
-                            row: message.row,
-                            col: message.col,
-                            ...result
-                        });
-                        break;
-                    }
-
-                    case 'table:clear': {
-                        const data = clearTable();
-                        broadcast({ type: 'table:cleared', data });
-                        send(socket, { type: 'table:clear:result', success: true });
-                        break;
-                    }
-
-                    default:
-                        send(socket, { type: 'error', message: 'Неизвестный тип сообщения' });
-                }
-            } catch (error) {
-                console.error('Ошибка WebSocket таблицы:', error);
-                send(socket, {
-                    type: 'error',
-                    message: error.code ? error.message : 'Ошибка сервера'
-                });
+            if (message.type === 'PONG') {
+                socket.isAlive = true;
+                console.log('🏓 Клиент ответил PONG');
+                return;
             }
+
+            send(socket, { type: 'ERROR', message: 'Неизвестный тип сообщения' });
         });
 
         socket.on('close', () => {
@@ -91,8 +46,8 @@ const setupTableSocket = (wss) => {
         });
     });
 
-    // Каждые 5 секунд отправляем клиентам прикладной ping.
-    // Клиент должен ответить сообщением { type: 'pong' }.
+    // WebSocket используется как подписка на изменения таблицы.
+    // PING/PONG нужен только для проверки живого соединения.
     const heartbeatInterval = setInterval(() => {
         wss.clients.forEach(socket => {
             if (socket.isAlive === false) {
@@ -102,14 +57,14 @@ const setupTableSocket = (wss) => {
             }
 
             socket.isAlive = false;
-
-            console.log('🏓 Отправляем ping клиенту');
+            console.log('🏓 Отправляем PING клиенту');
 
             send(socket, {
-                type: 'ping'
+                type: 'PING',
+                timestamp: Date.now()
             });
         });
-    },30000);
+    }, 30000);
 
     wss.on('close', () => {
         clearInterval(heartbeatInterval);
