@@ -2,7 +2,6 @@ const { WebSocket } = require('ws');
 const { updateCell, clearTable } = require('../services/tableService');
 
 let wssInstance = null;
-let nextClientId = 1;
 
 const send = (socket, message) => {
     if (socket.readyState === WebSocket.OPEN) {
@@ -20,15 +19,9 @@ const setupTableSocket = (wss) => {
     wssInstance = wss;
 
     wss.on('connection', socket => {
-        socket.clientId = nextClientId++;
+        console.log('🔌 WebSocket клиент подключён');
+
         socket.isAlive = true;
-
-        console.log(`🔌 WebSocket клиент ${socket.clientId} подключён`);
-
-        send(socket, {
-            type: 'CLIENT_ASSIGNED',
-            clientId: socket.clientId
-        });
 
         socket.on('message', rawMessage => {
             let message;
@@ -44,7 +37,7 @@ const setupTableSocket = (wss) => {
                 switch (message.type) {
                     case 'PONG': {
                         socket.isAlive = true;
-                        console.log(`🏓 Клиент ${socket.clientId} ответил PONG`);
+                        console.log('🏓 Клиент ответил PONG');
                         break;
                     }
 
@@ -59,8 +52,7 @@ const setupTableSocket = (wss) => {
                             type: 'CELL_UPDATED',
                             row: message.row,
                             col: message.col,
-                            value: message.value,
-                            clientId: socket.clientId
+                            value: message.value
                         });
 
                         send(socket, {
@@ -100,20 +92,20 @@ const setupTableSocket = (wss) => {
         });
 
         socket.on('close', () => {
-            console.log(`🔌 WebSocket клиент ${socket.clientId} отключён`);
+            console.log('🔌 WebSocket клиент отключён');
         });
     });
 
     const heartbeatInterval = setInterval(() => {
         wss.clients.forEach(socket => {
             if (socket.isAlive === false) {
-                console.log(`❌ WebSocket клиент ${socket.clientId} не отвечает`);
+                console.log('❌ WebSocket клиент не отвечает');
                 socket.terminate();
                 return;
             }
 
             socket.isAlive = false;
-            console.log(`🏓 Отправляем PING клиенту ${socket.clientId}`);
+            console.log('🏓 Отправляем PING клиенту');
 
             send(socket, {
                 type: 'PING',
