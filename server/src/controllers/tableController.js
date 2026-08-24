@@ -20,8 +20,7 @@ const updateTableCell = (req, res) => {
             type: 'CELL_UPDATED',
             row,
             col,
-            value,
-            clientId: null
+            value
         });
 
         res.json(result);
