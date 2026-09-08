@@ -108,8 +108,7 @@ const setupTableSocket = (wss) => {
             console.log('🏓 Отправляем PING клиенту');
 
             send(socket, {
-                type: 'PING',
-                timestamp: Date.now()
+                type: 'PING'
             });
         });
     }, 30000);
